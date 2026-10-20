@@ -938,7 +938,7 @@ footer{
       <span class="dtotal-label">Total</span>
       <span class="dtotal" id="dtotal">0 €</span>
     </div>
-    <button class="checkout-btn" onclick="checkout()">Commander par email →</button>
+    <button class="checkout-btn" id="checkout-btn" onclick="checkout()">Payer par carte →</button>
   </div>
 </div>
 
@@ -1180,7 +1180,25 @@ function updateCart(){
 }
 
 function toggleCart(){document.getElementById('overlay').classList.toggle('on');document.getElementById('drawer').classList.toggle('on');}
-function checkout(){
+async function checkout(){
+  if(!cart.length) return;
+  const btn=document.getElementById('checkout-btn');
+  const label=btn.textContent;
+  btn.disabled=true;btn.textContent='Redirection vers le paiement…';
+  try{
+    const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({items:cart.map(i=>({id:i.id,size:i.size,qty:i.qty}))})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&d.url){try{sessionStorage.setItem('spark_cart',JSON.stringify(cart));}catch(e){}window.location.href=d.url;return;}
+    btn.disabled=false;btn.textContent=label;
+    if(r.status===503){checkoutByEmail();return;}
+    toast(d.error||'Paiement indisponible, réessaie dans un instant');
+  }catch(e){
+    btn.disabled=false;btn.textContent=label;
+    toast('Connexion impossible, réessaie dans un instant');
+  }
+}
+function checkoutByEmail(){
   if(!cart.length) return;
   // Build order summary for email
   const items = cart.map(i => i.name + ' (' + i.size + ') x' + i.qty + ' = ' + (i.price*i.qty) + '€').join('%0A');
@@ -1238,6 +1256,11 @@ renderGrid();
 // Success message after payment
 if(window.location.search.includes('success=1')){
   setTimeout(()=>toast('Commande confirmée — merci ! 🤙'),500);
+  cart=[];updateCart();try{sessionStorage.removeItem('spark_cart');}catch(e){}
+  history.replaceState(null,'',window.location.pathname);
+}
+if(window.location.search.includes('canceled=1')){
+  try{const saved=JSON.parse(sessionStorage.getItem('spark_cart')||'[]');if(saved.length){cart=saved;updateCart();}}catch(e){}
   history.replaceState(null,'',window.location.pathname);
 }
 </script>
