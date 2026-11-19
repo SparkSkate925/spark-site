@@ -1341,6 +1341,14 @@ if(window.location.search.includes('success=1')){
     </div>
   </div>
 </div>
-<script>(function(){var q=new URLSearchParams(location.search).get('produit');if(q&&typeof openProd==='function'){window.addEventListener('load',function(){try{goto('store');openProd(q);}catch(e){}});}})();</script>
+<script>/* Liens directs : ?produit=spkXX (fiches) et ?products=spkXX-M:1,...&coupon=CODE (paiement Instagram/Facebook) */
+(function(){var q=new URLSearchParams(location.search);var one=q.get('produit');var many=q.get('products');var cp=(q.get('coupon')||'').trim().toUpperCase();
+window.addEventListener('load',function(){try{
+ if(many){var n=0;many.split(',').forEach(function(e){var a=e.split(':');var key=(a[0]||'').trim();var qty=Math.max(1,parseInt(a[1],10)||1);var i=key.lastIndexOf('-');if(i<1)return;var id=key.slice(0,i),sz=key.slice(i+1);
+  var p=products.find(function(x){return x.id===id});if(!p||p.available===false||sizes.indexOf(sz)<0)return;var ex=cart.find(function(x){return x.key===key});if(ex)ex.qty+=qty;else cart.push(Object.assign({},p,{qty:qty,size:sz,key:key}));n+=qty;});
+  if(cp&&PROMOS[cp]){PROMO_CODE=cp;discountPct=PROMOS[cp];try{localStorage.setItem('spark_promo',cp);}catch(e){}}
+  if(n){updateCart();toggleCart();}
+ }else if(one&&typeof openProd==='function'){goto('store');openProd(one);}
+}catch(e){}});})();</script>
 </body>
 </html>
