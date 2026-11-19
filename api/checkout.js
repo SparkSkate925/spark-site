@@ -5,18 +5,18 @@
 //   SHIPPING_EUR       (optionnel)   frais de livraison en euros, ex. "4.90". Absent ou 0 = livraison offerte.
 //   SITE_URL           (optionnel)   défaut https://www.sparkskate.com
 
-const CATALOG = {
-  spk01: { ref: 'SPK-01', name: 'SIGNATURE', sub: 'Tee Oversize · Dos Imprimé', price: 45, available: true },
-  spk02: { ref: 'SPK-02', name: 'VELOCITY', sub: 'Tee Oversize · Effet Vitesse', price: 45, available: false },
-  spk03: { ref: 'SPK-03', name: 'STATIC', sub: 'Tee Oversize · Op-Art', price: 48, available: false },
-  spk04: { ref: 'SPK-04', name: 'STACK', sub: 'Tee Oversize · Typographique', price: 45, available: false },
-  spk05: { ref: 'SPK-05', name: 'BOLT', sub: 'Tee Oversize · Graphique', price: 48, available: true },
-  spk06: { ref: 'SPK-06', name: 'ALL-OVER', sub: 'Tee Oversize · Full Print · Limited', price: 52, available: false },
-};
-const SIZES = ['S', 'M', 'L'];
+// Catalogue, tailles et codes promo générés à chaque build depuis index.html (voir build.mjs).
+let DATA = { catalog: {}, promos: {}, sizes: ['S', 'M', 'L'] };
+try { DATA = require('./catalog.json'); } catch (e) { console.error('catalog.json manquant', e); }
+const CATALOG = DATA.catalog;
+const SIZES = DATA.sizes;
+const PROMOS = DATA.promos || {};
 const MAX_QTY = 10;
 
 module.exports = async function handler(req, res) {
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, catalogBuiltAt: DATA.builtAt || 'committed', products: Object.keys(CATALOG).length, stripe: !!process.env.STRIPE_SECRET_KEY });
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Méthode non autorisée' });
@@ -39,6 +39,9 @@ module.exports = async function handler(req, res) {
   p.append('phone_number_collection[enabled]', 'true');
   p.append('billing_address_collection', 'auto');
 
+  const code = body && body.promo ? String(body.promo).trim().toUpperCase() : '';
+  const pct = code && typeof PROMOS[code] === 'number' && PROMOS[code] > 0 && PROMOS[code] < 100 ? PROMOS[code] : 0;
+
   const summary = [];
   for (let i = 0; i < items.length; i++) {
     const it = items[i] || {};
@@ -51,12 +54,13 @@ module.exports = async function handler(req, res) {
     const k = `line_items[${i}]`;
     p.append(`${k}[quantity]`, String(qty));
     p.append(`${k}[price_data][currency]`, 'eur');
-    p.append(`${k}[price_data][unit_amount]`, String(Math.round(prod.price * 100)));
-    p.append(`${k}[price_data][product_data][name]`, `${prod.name} — Taille ${size}`);
+    p.append(`${k}[price_data][unit_amount]`, String(Math.round(prod.price * (100 - pct))));
+    p.append(`${k}[price_data][product_data][name]`, `${prod.name} — Taille ${size}` + (pct ? ` (code ${code} -${pct}%)` : ''));
     p.append(`${k}[price_data][product_data][description]`, `${prod.ref} · ${prod.sub}`);
     summary.push(`${prod.ref}-${size}x${qty}`);
   }
   p.append('metadata[commande]', summary.join(', ').slice(0, 500));
+  if (pct) p.append('metadata[code_promo]', code);
   p.append('payment_intent_data[description]', ('SPARK ' + summary.join(', ')).slice(0, 500));
 
   const ship = Math.round(parseFloat(process.env.SHIPPING_EUR || '0') * 100) || 0;

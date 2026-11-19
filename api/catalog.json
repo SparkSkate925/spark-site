@@ -1,0 +1,56 @@
+{
+  "catalog": {
+    "spk01": {
+      "ref": "SPK-01",
+      "name": "SIGNATURE",
+      "sub": "Tee Oversize · Dos Imprimé",
+      "price": 39,
+      "available": true
+    },
+    "spk02": {
+      "ref": "SPK-02",
+      "name": "VELOCITY",
+      "sub": "Tee Oversize · Effet Vitesse",
+      "price": 39,
+      "available": false
+    },
+    "spk03": {
+      "ref": "SPK-03",
+      "name": "STATIC",
+      "sub": "Tee Oversize · Op-Art",
+      "price": 42,
+      "available": false
+    },
+    "spk04": {
+      "ref": "SPK-04",
+      "name": "STACK",
+      "sub": "Tee Oversize · Typographique",
+      "price": 39,
+      "available": false
+    },
+    "spk05": {
+      "ref": "SPK-05",
+      "name": "BOLT",
+      "sub": "Tee Oversize · Graphique",
+      "price": 42,
+      "available": true
+    },
+    "spk06": {
+      "ref": "SPK-06",
+      "name": "ALL-OVER",
+      "sub": "Tee Oversize · Full Print · Limited",
+      "price": 46,
+      "available": false
+    }
+  },
+  "promos": {
+    "SPARK10": 10,
+    "SPARK-X7K9": 10
+  },
+  "sizes": [
+    "S",
+    "M",
+    "L"
+  ],
+  "builtAt": "committed"
+}
